@@ -7,20 +7,15 @@ public class InventarioMago : MonoBehaviour
     [SerializeField] private int totalPociones = 6; // Total de pociones en el mapa
     [SerializeField] private bool tieneLibro = false;
     
-    [Header("UI (Opcional)")]
-    [SerializeField] private UnityEngine.UI.Text textoPociones;
-    [SerializeField] private UnityEngine.UI.Text textoLibro;
     
     void Start()
     {
-        ActualizarUI();
     }
     
     public void RecogerPocion()
     {
         pocionesRecogidas++;
         Debug.Log($"Pociones: {pocionesRecogidas}/{totalPociones}");
-        ActualizarUI();
         
         // Comprobar si ha recogido todas
         if (pocionesRecogidas >= totalPociones)
@@ -33,7 +28,6 @@ public class InventarioMago : MonoBehaviour
     {
         tieneLibro = true;
         Debug.Log("¡Has recogido el Libro de Recetas!");
-        ActualizarUI();
     }
     
     public bool TieneLibro()
@@ -51,16 +45,4 @@ public class InventarioMago : MonoBehaviour
         return tieneLibro && pocionesRecogidas >= totalPociones;
     }
     
-    private void ActualizarUI()
-    {
-        if (textoPociones != null)
-        {
-            textoPociones.text = $"Pociones: {pocionesRecogidas}/{totalPociones}";
-        }
-        
-        if (textoLibro != null)
-        {
-            textoLibro.text = tieneLibro ? "Libro: ✓" : "Libro: ✗";
-        }
-    }
 }

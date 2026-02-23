@@ -8,7 +8,6 @@ public class ObjetoRecolectable : MonoBehaviour
     [SerializeField] private float rangoDeteccion = 2f;
     
     [Header("Visual (Opcional)")]
-    [SerializeField] private GameObject indicadorE; // UI que dice "Presiona E"
     [SerializeField] private bool rotarObjeto = true;
     [SerializeField] private float velocidadRotacion = 50f;
     
@@ -31,11 +30,6 @@ public class ObjetoRecolectable : MonoBehaviour
             Debug.LogWarning("No se encontró el jugador. Asegúrate de que tenga el tag 'Player'");
         }
         
-        // Ocultar indicador al inicio
-        if (indicadorE != null)
-        {
-            indicadorE.SetActive(false);
-        }
     }
     
     void Update()
@@ -52,11 +46,6 @@ public class ObjetoRecolectable : MonoBehaviour
             float distancia = Vector3.Distance(transform.position, jugador.position);
             jugadorCerca = distancia <= rangoDeteccion;
             
-            // Mostrar/ocultar indicador
-            if (indicadorE != null)
-            {
-                indicadorE.SetActive(jugadorCerca);
-            }
             
             // Recoger con E
             if (jugadorCerca && Input.GetKeyDown(KeyCode.E))

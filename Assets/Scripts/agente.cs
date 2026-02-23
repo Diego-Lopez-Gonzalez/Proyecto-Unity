@@ -13,9 +13,8 @@ public class GuardiaPatrulla : MonoBehaviour
     [Header("Campo de Visión")]
     [SerializeField] private Transform jugador;
     [SerializeField] private float rangoVision = 10f;
-    [SerializeField] private float anguloVision = 90f;        // Semiángulo total del cono
-    [SerializeField] private float tiempoMemoria = 3f;        // Segundos que "recuerda" al jugador tras perderlo
-    [SerializeField] private LayerMask capasObstaculo;        // Capas que bloquean la visión (paredes, etc.)
+    [SerializeField] private float anguloVision = 90f;
+    [SerializeField] private LayerMask capasObstaculo;
     [SerializeField] private float velocidadPersecucion = 5f;
     [SerializeField] private float velocidadPatrulla = 2f;
 
@@ -24,17 +23,20 @@ public class GuardiaPatrulla : MonoBehaviour
     private float tiempoEnPunto = 0f;
     private bool esperando = false;
 
-    // Estado
     private enum Estado { Patrullando, Persiguiendo, Buscando }
     private Estado estadoActual = Estado.Patrullando;
-    private float timerMemoria = 0f;
     private Vector3 ultimaPosicionVista;
+
+    [Header("Búsqueda")]
+    [SerializeField] private float tiempoExploracion = 3f;
+    [SerializeField] private float radioExploracion  = 4f;
+
+    private float timerExploracion = 0f;
 
     void Start()
     {
         navAgent = GetComponent<NavMeshAgent>();
         navAgent.speed = velocidadPatrulla;
-
         if (puntosPatrulla.Length > 0)
             navAgent.SetDestination(puntosPatrulla[0].position);
     }
@@ -46,10 +48,8 @@ public class GuardiaPatrulla : MonoBehaviour
         switch (estadoActual)
         {
             case Estado.Patrullando:
-                if (jugadorVisible)
-                    EntrarEnPersecucion();
-                else
-                    Patrullar();
+                if (jugadorVisible) EntrarEnPersecucion();
+                else                Patrullar();
                 break;
 
             case Estado.Persiguiendo:
@@ -57,30 +57,45 @@ public class GuardiaPatrulla : MonoBehaviour
                 {
                     ultimaPosicionVista = jugador.position;
                     navAgent.SetDestination(jugador.position);
-                    timerMemoria = tiempoMemoria;
                 }
-                else
-                {
-                    timerMemoria -= Time.deltaTime;
-                    if (timerMemoria <= 0f)
-                        EntrarEnBusqueda();
-                }
+                else EntrarEnBusqueda();
                 break;
 
             case Estado.Buscando:
-                // Camina hacia la última posición conocida
-                if (!navAgent.pathPending && navAgent.remainingDistance <= navAgent.stoppingDistance)
-                    VolverAPatrullar();
+                if (jugadorVisible) { EntrarEnPersecucion(); break; }
 
-                // Si lo vuelve a ver mientras busca
-                if (jugadorVisible)
-                    EntrarEnPersecucion();
+                timerExploracion -= Time.deltaTime;
+                Debug.Log($"[Buscando] Timer: {timerExploracion:F1} | destino actual: {navAgent.destination} | distancia restante: {navAgent.remainingDistance:F1}");
+
+                if (timerExploracion <= 0f)
+                {
+                    Debug.Log("[Buscando] Timer agotado, volviendo a patrullar.");
+                    VolverAPatrullar();
+                    break;
+                }
+
+                // Cuando termina de ir a un punto, elegir otro cercano aleatorio
+                if (!navAgent.pathPending && navAgent.remainingDistance <= navAgent.stoppingDistance)
+                {
+                    Vector3 nuevoPunto = PuntoAleatorioEnZona(ultimaPosicionVista, radioExploracion);
+                    Debug.Log($"[Buscando] Llegué al punto, yendo a nuevo punto: {nuevoPunto}");
+                    navAgent.SetDestination(nuevoPunto);
+                }
+
                 break;
         }
 
         GestionarPuertas();
     }
 
+    private Vector3 PuntoAleatorioEnZona(Vector3 centro, float radio)
+    {
+        Vector2 circulo = Random.insideUnitCircle * radio;
+        Vector3 candidato = centro + new Vector3(circulo.x, 0f, circulo.y);
+        if (NavMesh.SamplePosition(candidato, out NavMeshHit hit, radio, NavMesh.AllAreas))
+            return hit.position;
+        return centro;
+    }
 
     private bool VerificarVision()
     {
@@ -89,37 +104,27 @@ public class GuardiaPatrulla : MonoBehaviour
         Vector3 dirAlJugador = jugador.position - transform.position;
         float distancia = dirAlJugador.magnitude;
 
-        // 1. ¿Está dentro del rango?
         if (distancia > rangoVision) return false;
-
-        // 2. ¿Está dentro del ángulo del cono?
-        float angulo = Vector3.Angle(transform.forward, dirAlJugador);
-        if (angulo > anguloVision * 0.5f) return false;
-
-        // 3. ¿Hay línea de visión directa? (Raycast)
-        if (Physics.Raycast(transform.position + Vector3.up * 1.5f,
-                            dirAlJugador.normalized,
-                            distancia,
-                            capasObstaculo))
-            return false; // Algo lo bloquea
+        if (Vector3.Angle(transform.forward, dirAlJugador) > anguloVision * 0.5f) return false;
+        if (Physics.Raycast(transform.position + Vector3.up * 1.5f, dirAlJugador.normalized, distancia, capasObstaculo)) return false;
 
         return true;
     }
-
 
     private void EntrarEnPersecucion()
     {
         estadoActual = Estado.Persiguiendo;
         navAgent.speed = velocidadPersecucion;
-        timerMemoria = tiempoMemoria;
-        Debug.Log("¡Guardia detectó al jugador!");
+        ultimaPosicionVista = jugador.position;
+        navAgent.SetDestination(jugador.position);
     }
 
     private void EntrarEnBusqueda()
     {
         estadoActual = Estado.Buscando;
+        timerExploracion = tiempoExploracion;
         navAgent.SetDestination(ultimaPosicionVista);
-        Debug.Log("Guardia busca en la última posición vista.");
+        Debug.Log($"[Buscando] Entrando en búsqueda. Última posición vista: {ultimaPosicionVista}");
     }
 
     private void VolverAPatrullar()
@@ -127,13 +132,9 @@ public class GuardiaPatrulla : MonoBehaviour
         estadoActual = Estado.Patrullando;
         navAgent.speed = velocidadPatrulla;
         esperando = false;
-
         if (puntosPatrulla.Length > 0)
             navAgent.SetDestination(puntosPatrulla[indiceActual].position);
-
-        Debug.Log("Guardia vuelve a patrullar.");
     }
-
 
     private void Patrullar()
     {
@@ -159,7 +160,6 @@ public class GuardiaPatrulla : MonoBehaviour
         }
     }
 
-
     private void GestionarPuertas()
     {
         Collider[] cercanos = Physics.OverlapSphere(transform.position, rangoDeteccionPuerta);
@@ -171,5 +171,13 @@ public class GuardiaPatrulla : MonoBehaviour
         }
     }
 
-    
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        float semi = anguloVision * 0.5f;
+        Vector3 o = transform.position + Vector3.up * 1.5f;
+        Gizmos.DrawRay(o, Quaternion.Euler(0,  semi, 0) * transform.forward * rangoVision);
+        Gizmos.DrawRay(o, Quaternion.Euler(0, -semi, 0) * transform.forward * rangoVision);
+        Gizmos.DrawRay(o, transform.forward * rangoVision);
+    }
 }
