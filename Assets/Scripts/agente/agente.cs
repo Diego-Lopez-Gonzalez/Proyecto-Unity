@@ -17,6 +17,9 @@ public class GuardiaPatrulla : MonoBehaviour
     private CapaTactica  capaTactica;
     private NavMeshAgent navAgent;
 
+    [Header("Captura")]
+    [SerializeField] private float radioCaptura = 1.2f;
+
     [Header("Objeto Vigilado")]
     [SerializeField] private Transform objetoVigilado;
 
@@ -54,6 +57,15 @@ public class GuardiaPatrulla : MonoBehaviour
                 CambiarAPersecucion(posicionJugador);
             else
                 capaTactica.EjecutarPersecucion(posicionJugador);
+
+            // ── CAPTURA ───────────────────────────────────────────
+            if (capaReactiva.DetectarCaptura(radioCaptura))
+            {
+                Debug.Log("[Planificación] ¡JUGADOR ATRAPADO! → GAME OVER");
+                GameOverManager.Instancia.ActivarGameOver();
+                return;
+            }
+
             return;
         }
 

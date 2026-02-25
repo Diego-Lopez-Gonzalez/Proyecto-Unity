@@ -83,6 +83,21 @@ public class CapaReactiva : MonoBehaviour
         return true;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  CAPTURA
+    // ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Devuelve true si el guardia está lo suficientemente cerca del jugador
+    /// como para considerarlo atrapado. Solo tiene sentido llamarlo mientras
+    /// se persigue al jugador.
+    /// </summary>
+    public bool DetectarCaptura(float radioCaptura)
+    {
+        if (jugador == null) return false;
+        return Vector3.Distance(transform.position, jugador.position) <= radioCaptura;
+    }
+
     public void GestionarPuertasCercanas()
     {
         Collider[] cercanos = Physics.OverlapSphere(transform.position, rangoDeteccionPuerta);
@@ -105,7 +120,7 @@ public class CapaReactiva : MonoBehaviour
         return !navAgent.pathPending && navAgent.remainingDistance <= navAgent.stoppingDistance;
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
         float semi = anguloVision * 0.5f;

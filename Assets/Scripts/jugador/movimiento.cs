@@ -35,5 +35,7 @@ public class MagoControllerSimple : MonoBehaviour
             Quaternion rotacion = Quaternion.LookRotation(direccion);
             transform.rotation = Quaternion.Lerp(transform.rotation, rotacion, suavizadoRotacion * Time.deltaTime);
         }
+
+        transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
     }
 }

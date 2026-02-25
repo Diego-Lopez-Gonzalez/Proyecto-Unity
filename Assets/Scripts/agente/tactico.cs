@@ -15,8 +15,6 @@ public class CapaTactica : MonoBehaviour
     [SerializeField] private float tiempoExploracion = 3f;
     [SerializeField] private float radioExploracion = 4f;
 
-    [Header("Palanca")]
-    [SerializeField] private float rangoInteraccionPalanca = 1.5f;
 
     private CapaReactiva capaReactiva;
 
