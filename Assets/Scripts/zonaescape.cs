@@ -11,11 +11,10 @@ public class ZonaEscape : MonoBehaviour
     [Tooltip("Segundos que permanece visible el aviso de objetos incompletos.")]
     [SerializeField] private float duracionAviso = 2f;
 
-    // ── Estado interno ───────────────────────────────────────────
     private float timerAviso = 0f;
     private bool  mostrandoAviso = false;
 
-    // ── Trigger ──────────────────────────────────────────────────
+    // Trigger
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
@@ -35,16 +34,15 @@ public class ZonaEscape : MonoBehaviour
         else
         {
             // Muestra aviso: faltan objetos
-            int pociones   = inventario.GetPocionesRecogidas();
-            bool tieneLibro = inventario.TieneLibro();
-            Debug.Log($"[ZonaEscape] Faltan objetos. Pociones: {pociones}, Libro: {tieneLibro}");
+            int objetos   = inventario.GetObjetosRecogidos();
+            Debug.Log($"[ZonaEscape] Faltan objetos. Pociones: {objetos}");
 
             mostrandoAviso = true;
             timerAviso     = duracionAviso;
         }
     }
 
-    // ── Aviso en pantalla ────────────────────────────────────────
+    // Aviso en pantalla
     private void Update()
     {
         if (!mostrandoAviso) return;
@@ -77,7 +75,7 @@ public class ZonaEscape : MonoBehaviour
         GUI.Label(rect, mensajeFaltanObjetos, estilo);
     }
 
-    // ── Gizmo para ver la zona en el editor ──────────────────────
+    // Gizmo
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(0f, 1f, 0.3f, 0.25f);

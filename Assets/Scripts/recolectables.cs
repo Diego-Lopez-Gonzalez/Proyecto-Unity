@@ -49,10 +49,8 @@ public class ObjetoRecolectable : MonoBehaviour
         
         if (inventario != null)
         {
-            if (tipo == TipoObjeto.Pocion)
-                inventario.RecogerPocion();
-            else if (tipo == TipoObjeto.Libro)
-                inventario.RecogerLibro();
+            inventario.RecogerObjeto();
+            
             
             Debug.Log($"¡Has recogido: {nombreObjeto}!");
             

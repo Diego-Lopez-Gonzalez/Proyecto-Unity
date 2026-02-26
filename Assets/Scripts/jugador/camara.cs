@@ -5,7 +5,7 @@ public class CamaraSeguir : MonoBehaviour
     [Header("Configuración")]
     [SerializeField] private Transform objetivo; // El mago
     [SerializeField] private Vector3 offset = new Vector3(0, 8, -10); // Posición relativa
-    [SerializeField] private float suavizado = 5f; // Suavidad del seguimiento (0 = instantáneo)
+    [SerializeField] private float suavizado = 5f; // Suavidad del seguimiento
     
     void LateUpdate()
     {
@@ -21,6 +21,6 @@ public class CamaraSeguir : MonoBehaviour
         // Mover la cámara suavemente
         transform.position = Vector3.Lerp(transform.position, posicionDeseada, suavizado * Time.deltaTime);
         
-        // La rotación se mantiene FIJA (no cambia)
+        // La rotación se mantiene FIJA
     }
 }

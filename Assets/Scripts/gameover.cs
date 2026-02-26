@@ -6,10 +6,9 @@ using UnityEngine.SceneManagement;
 
 public class GameOverManager : MonoBehaviour
 {
-    // ── Singleton ────────────────────────────────────────────────
     public static GameOverManager Instancia { get; private set; }
 
-    // ── Inspector ────────────────────────────────────────────────
+    // Inspector
     [Header("UI · Panel compartido")]
     [Tooltip("Panel raíz (desactivado al inicio).")]
     [SerializeField] private GameObject panel;
@@ -40,10 +39,10 @@ public class GameOverManager : MonoBehaviour
     [Tooltip("Nombre de la escena al reiniciar (vacío = escena actual).")]
     [SerializeField] private string escenaReinicio = "";
 
-    // ── Estado interno ───────────────────────────────────────────
+    // Estado interno
     private bool juegoTerminado = false;
 
-    // ── Ciclo de vida ────────────────────────────────────────────
+    // Ciclo de vida
     private void Awake()
     {
         if (Instancia != null && Instancia != this) { Destroy(gameObject); return; }
@@ -55,9 +54,8 @@ public class GameOverManager : MonoBehaviour
         if (panel != null) panel.SetActive(false);
     }
 
-    // ── API pública ──────────────────────────────────────────────
 
-    /// <summary>Llama a este método cuando el guardia atrapa al jugador.</summary>
+    // Llama a este método cuando el guardia atrapa al jugador
     public void ActivarGameOver()
     {
         if (juegoTerminado) return;
@@ -66,7 +64,7 @@ public class GameOverManager : MonoBehaviour
         StartCoroutine(SecuenciaDerrota());
     }
 
-    /// <summary>Llama a este método cuando el jugador escapa con todos los objetos.</summary>
+    /// Llama a este método cuando el jugador escapa con todos los objetos
     public void ActivarVictoria()
     {
         if (juegoTerminado) return;
@@ -75,7 +73,7 @@ public class GameOverManager : MonoBehaviour
         StartCoroutine(SecuenciaVictoria());
     }
 
-    /// <summary>Conecta este método al botón del panel.</summary>
+    // Conecta este método al botón del panel
     public void Reiniciar()
     {
         Time.timeScale      = 1f;
@@ -86,9 +84,9 @@ public class GameOverManager : MonoBehaviour
         SceneManager.LoadScene(escena);
     }
 
-    // ── Secuencias ───────────────────────────────────────────────
+    // Secuencias
 
-    // Derrota: tiempo bala → pausa → panel
+    // Derrota
     private IEnumerator SecuenciaDerrota()
     {
         yield return StartCoroutine(RalentizarTiempo(escalaRalentizada, duracionRalentizacion));
@@ -97,7 +95,7 @@ public class GameOverManager : MonoBehaviour
         MostrarPanel(mensajeDerrota, subtituloDerrota);
     }
 
-    // Victoria: sin ralentización, pausa breve → panel
+    // Victoria
     private IEnumerator SecuenciaVictoria()
     {
         yield return new WaitForSecondsRealtime(pausaAntesDePanel);
@@ -105,7 +103,6 @@ public class GameOverManager : MonoBehaviour
         MostrarPanel(mensajeVictoria, subtituloVictoria);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────
 
     private IEnumerator RalentizarTiempo(float escalaObjetivo, float duracionReal)
     {
