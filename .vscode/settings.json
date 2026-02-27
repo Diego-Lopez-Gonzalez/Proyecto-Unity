@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Prueba Mapa.slnx"
+    "dotnet.defaultSolution": "Proyecto-Unity.slnx"
 }
