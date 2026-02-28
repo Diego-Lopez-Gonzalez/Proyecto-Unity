@@ -43,7 +43,7 @@ namespace GuardiaIA
 
         public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            // No necesita limpiar nada
+            cerebro.OnPalancaGestionada();
         }
     }
 }

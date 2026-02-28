@@ -12,12 +12,19 @@ namespace GuardiaIA
         public Vector3 UltimaPosicionJugador    { get; set; }
         public bool    JugadorVisible           { get; set; }
 
-        // Estado del objeto vigilado
-        public bool ObjetoDesaparecido          { get; set; }
+        // True cuando el jugador acaba de perderse (flag de un solo frame).
+        public bool JugadorRecienPerdido        { get; set; }
 
-        // Gestión de prioridades entre persecución y palanca
-        // True cuando el objeto desaparece mientras se persigue al jugador.
-        // Al perder al jugador el cerebro sabe que debe ir a la palanca.
+        // Estado del objeto vigilado
+        // ObjetoDesaparecido es un hecho permanente: nunca vuelve a false.
+        public bool ObjetoDesaparecido          { get; set; }
+        // PalancaYaGestionada evita que EvaluarPrioridades vuelva a mandar
+        // al guardia a la palanca una vez que ya la activó (o lo intentó).
+        // Se resetea a false cuando el estado de inspección decide revisarla de nuevo.
+        public bool PalancaYaGestionada         { get; set; }
+
+        // Si el objeto desaparece mientras perseguimos al jugador,
+        // guardamos que hay una palanca pendiente para ir después de perderle.
         public bool PalancaPendienteTrasPerder  { get; set; }
 
         // Datos de la palanca
@@ -38,10 +45,9 @@ namespace GuardiaIA
         public float RadioBusqueda              { get; set; }
 
         // Datos de sonido
-        // Posición aproximada donde el agente creyó escuchar el sonido.
         public Vector3 PosicionPercibidaSonido  { get; set; }
-        // Radio de incertidumbre del sonido percibido.
         public float   RadioIncertidumbreSonido { get; set; }
+        public bool    SonidoPendiente          { get; set; }
     }
 
 
@@ -52,7 +58,7 @@ namespace GuardiaIA
     //
     public class Cerebro : MonoBehaviour
     {
-        // ── Inspector ───────────────────────────────────────────────────
+        // Inspector
         [Header("Visión")]
         [SerializeField] private float rangoVision       = 10f;
         [SerializeField] private float anguloVision      = 90f;
@@ -102,7 +108,6 @@ namespace GuardiaIA
 
         private void Start()
         {
-            // 1. Construir la base de conocimiento con todos los parámetros
             conocimiento = new BaseConocimiento
             {
                 Palanca              = palanca,
@@ -116,123 +121,154 @@ namespace GuardiaIA
                 RadioBusqueda        = radioBusqueda
             };
 
-            // 2. Obtener componentes del mismo GameObject
             acciones     = GetComponent<Acciones>();
             sensorVision = GetComponent<SensorVision>();
             sensorTacto  = GetComponent<SensorTacto>();
-
-            // 3. Inicializar sensores: les damos nuestra referencia.
-            //    A partir de aquí los sensores nos avisarán y nosotros nunca les preguntamos.
-            sensorVision.Inicializar(
-                this,
-                jugador,
-                objetoVigilado,
-                rangoVision,
-                anguloVision,
-                capasObstaculo
-            );
-
-            sensorTacto.Inicializar(
-                this,
-                jugador,
-                radioCaptura,
-                rangoDeteccionPuertas
-            );
-
             sensorSonido = GetComponent<SensorSonido>();
+
+            sensorVision.Inicializar(this, jugador, objetoVigilado,
+                                     rangoVision, anguloVision, capasObstaculo);
+            sensorTacto.Inicializar(this, jugador, radioCaptura, rangoDeteccionPuertas);
             sensorSonido.Inicializar(this, radioEscucha, radioIncertidumbre);
 
-            // 4. Estado inicial
             CambiarEstado(new EstadoPatrulla());
         }
 
         private void Update()
         {
-            // El cerebro solo delega en el estado activo.
+            // 1. El evaluador centralizado decide qué estado debe estar activo.
+            EvaluarPrioridades();
+
+            // 2. El estado activo ejecuta su lógica interna.
             estadoActual?.Ejecutar(this, conocimiento, acciones);
         }
 
         //
-        //  MÉTODOS PÚBLICOS — llamados exclusivamente por sensores
+        //  EVALUADOR DE PRIORIDADES
         //
-
-        // El sensor de visión ha detectado al jugador por primera vez o tras perderlo.
-        public void OnJugadorDetectado(Vector3 posicion)
+        private void EvaluarPrioridades()
         {
-            conocimiento.JugadorVisible           = true;
-            conocimiento.UltimaPosicionJugador    = posicion;
+            // Prioridad 1: jugador visible → perseguir siempre
+            if (conocimiento.JugadorVisible)
+            {
+                if (estadoActual is not EstadoPersecucion)
+                {
+                    // Si interrumpimos la palanca a mitad, la recordamos para después
+                    if (estadoActual is EstadoYendoPalanca)
+                        conocimiento.PalancaPendienteTrasPerder = true;
 
-            // Si ya estábamos persiguiendo no cambiamos estado
-            if (estadoActual is EstadoPersecucion) return;
+                    CambiarEstado(new EstadoPersecucion());
+                }
+                return;
+            }
 
-            // Si interrumpimos la secuencia de palanca, la recordamos para después
-            if (estadoActual is EstadoYendoPalanca)
-                conocimiento.PalancaPendienteTrasPerder = true;
+            // Prioridad 2: jugador recién perdido
+            if (conocimiento.JugadorRecienPerdido)
+            {
+                conocimiento.JugadorRecienPerdido = false;
 
-            CambiarEstado(new EstadoPersecucion());
+                if (conocimiento.PalancaPendienteTrasPerder)
+                {
+                    conocimiento.PalancaPendienteTrasPerder = false;
+                    CambiarEstado(new EstadoYendoPalanca());
+                }
+                else
+                {
+                    CambiarEstado(new EstadoBusqueda());
+                }
+                return;
+            }
+
+            // Prioridad 3: sonido pendiente
+            // Solo interrumpimos patrulla o inspección, no búsqueda activa.
+            if (conocimiento.SonidoPendiente)
+            {
+                conocimiento.SonidoPendiente = false;
+
+                if (estadoActual is EstadoPatrulla or EstadoInspeccionAleatoria)
+                    CambiarEstado(new EstadoInvestigarSonido());
+
+                return;
+            }
+
+            // Prioridad 4: objeto robado, palanca aún no gestionada
+            // Primera vez que el objeto desaparece: ir a activar la palanca.
+            if (conocimiento.ObjetoDesaparecido    &&
+                !conocimiento.PalancaYaGestionada  &&
+                estadoActual is not EstadoYendoPalanca &&
+                estadoActual is not EstadoPersecucion)
+            {
+                CambiarEstado(new EstadoYendoPalanca());
+                return;
+            }
+
+            // Prioridad 5: objeto robado, palanca ya gestionada
+            // El objeto sigue sin estar: en vez de patrullar normalmente,
+            // el guardia hace inspecciones más exhaustivas por la zona.
+            // Si el estado actual es Patrulla normal, lo redirigimos.
+            if (conocimiento.ObjetoDesaparecido   &&
+                conocimiento.PalancaYaGestionada  &&
+                estadoActual is EstadoPatrulla)
+            {
+                CambiarEstado(new EstadoInspeccionAleatoria());
+                return;
+            }
+
+            // Prioridad 6: nada urgente
+            // llaman a CambiarEstado(new EstadoPatrulla()) cuando terminan,
+            // y la prioridad 5 se encarga de redirigir si hace falta.
         }
 
-        // El jugador sigue visible y actualizamos su posición
-        // en el conocimiento sin cambiar de estado.
+        //
+        //  CALLBACKS DE SENSORES
+        //  Solo escriben en BaseConocimiento; EvaluarPrioridades decide qué hacer.
+        //
+
+        public void OnJugadorDetectado(Vector3 posicion)
+        {
+            conocimiento.JugadorVisible        = true;
+            conocimiento.UltimaPosicionJugador = posicion;
+        }
+
         public void OnActualizarPosicionJugador(Vector3 posicion)
         {
             conocimiento.UltimaPosicionJugador = posicion;
         }
 
-        // El sensor de visión ha perdido al jugador.
         public void OnJugadorPerdido()
         {
-            conocimiento.JugadorVisible = false;
-
-            if (conocimiento.PalancaPendienteTrasPerder)
-            {
-                conocimiento.PalancaPendienteTrasPerder = false;
-                CambiarEstado(new EstadoYendoPalanca());
-            }
-            else
-            {
-                CambiarEstado(new EstadoBusqueda());
-            }
+            conocimiento.JugadorVisible       = false;
+            conocimiento.JugadorRecienPerdido = true;
         }
 
-        // El sensor ha detectado que el objeto vigilado ha desaparecido.
         public void OnObjetoDesaparecido()
         {
+            // Hecho permanente: el objeto ya no está, no se resetea nunca.
             conocimiento.ObjetoDesaparecido = true;
-
-            if (estadoActual is EstadoPersecucion)
-            {
-                // No interrumpimos la persecución, lo recordamos para después
-                conocimiento.PalancaPendienteTrasPerder = true;
-            }
-            else if (!(estadoActual is EstadoYendoPalanca))
-            {
-                CambiarEstado(new EstadoYendoPalanca());
-            }
-            // Si ya estamos yendo a la palanca no hacemos nada
         }
 
-        // El sensor de sonido ha detectado ruido en un área aproximada.
         public void OnSonidoDetectado(Vector3 posicionPercibida, float radioDesvio)
         {
-            // El sonido tiene menor prioridad que la visión directa:
-            // ignoramos si ya estamos persiguiendo, capturando o yendo a la palanca
-            if (estadoActual is EstadoPersecucion)  return;
-            if (estadoActual is EstadoYendoPalanca) return;
-
-            // Guardamos el área percibida en el conocimiento
             conocimiento.PosicionPercibidaSonido  = posicionPercibida;
             conocimiento.RadioIncertidumbreSonido = radioDesvio;
-
-            // Solo investigamos si no estábamos ya investigando este mismo sonido
-            if (estadoActual is EstadoInvestigarSonido) return;
-
-            Debug.Log($"[Cerebro] Sonido detectado → INVESTIGAR área {posicionPercibida}");
-            CambiarEstado(new EstadoInvestigarSonido());
+            conocimiento.SonidoPendiente          = true;
         }
 
-        // El sensor de captura ha detectado que el jugador está
-        // dentro del radio de captura.
+        // Llamado por EstadoYendoPalanca al terminar (palanca activada o abortada).
+        // Marca que la misión de la palanca ya está resuelta.
+        public void OnPalancaGestionada()
+        {
+            conocimiento.PalancaYaGestionada = true;
+        }
+
+        // Llamado por EstadoInspeccionAleatoria cuando decide revisar la palanca
+        // de nuevo tras pasar demasiado tiempo sin novedad.
+
+        public void OnRevisarPalanca()
+        {
+            conocimiento.PalancaYaGestionada = false;
+        }
+
         public void OnJugadorCapturado()
         {
             Debug.Log("[Cerebro] ¡JUGADOR ATRAPADO! → GAME OVER");
@@ -243,7 +279,6 @@ namespace GuardiaIA
         {
             puerta.Abrir();
         }
-        
 
         //
         //  GESTIÓN DE ESTADOS
