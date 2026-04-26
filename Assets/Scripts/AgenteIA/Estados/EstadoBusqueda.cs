@@ -4,11 +4,14 @@ namespace GuardiaIA
 {
     public class EstadoBusqueda : IEstado
     {
+        public bool HaTerminado { get; private set; } = false;
+
         private float timerActual = 0f;
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
             Debug.Log("[EstadoBusqueda] Entrar → BUSCANDO");
+            HaTerminado = false;
             timerActual = bc.TiempoBusqueda;
             acciones.MoverHacia(bc.UltimaPosicionJugador, bc.VelocidadPatrulla);
         }
@@ -18,15 +21,14 @@ namespace GuardiaIA
             timerActual -= Time.deltaTime;
             Debug.Log($"[EstadoBusqueda] Timer restante: {timerActual:F1}s");
 
-            // Tiempo agotado: volver a patrullar
             if (timerActual <= 0f)
             {
-                Debug.Log("[EstadoBusqueda] Tiempo agotado → volviendo a patrullar.");
-                cerebro.CambiarEstado(new EstadoPatrulla());
+                Debug.Log("[EstadoBusqueda] Tiempo agotado → señalando fin.");
+                // No elige sucesor: avisa al árbitro y este decide.
+                HaTerminado = true;
                 return;
             }
 
-            // Si llegó al punto actual, elegir uno nuevo aleatorio
             if (acciones.HaLlegado())
             {
                 Vector3 nuevoPunto = acciones.PuntoAleatorioNavMesh(
@@ -38,10 +40,6 @@ namespace GuardiaIA
             }
         }
 
-
-        public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
-        {
-            // No necesita limpiar nada
-        }
+        public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones) { }
     }
 }

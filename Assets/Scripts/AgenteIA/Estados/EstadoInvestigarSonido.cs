@@ -5,20 +5,20 @@ namespace GuardiaIA
     /// El agente reacciona a un sonido percibido en tres fases:
     ///
     ///   FASE 1 — GIRAR: rota para mirar hacia el área donde escuchó el sonido.
-    ///   FASE 2 — MOVERSE: se desplaza hasta la posición percibida (aproximada).
-    ///   FASE 3 — BUSCAR: explora aleatoriamente el área durante un tiempo limitado.
-
+    ///   FASE 2 — ESPERAR: parado mirando, procesando lo que oyó.
+    ///   FASE 3 — MOVERSE: se desplaza hasta la posición percibida (aproximada).
+    ///   FASE 4 — BUSCAR: explora aleatoriamente el área durante un tiempo limitado.
     public class EstadoInvestigarSonido : IEstado
     {
+        public bool HaTerminado { get; private set; } = false;
+
         private enum Fase { Girar, Esperar, Moverse, Buscar }
 
         private Fase  faseActual;
         private float timerBusqueda;
         private float timerEspera;
 
-        [Header("Parámetros internos")]
-        private const float DURACION_ESPERA = 1.5f; // segundos parado mirando tras el giro
-
+        private const float DURACION_ESPERA = 1.5f;
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
@@ -26,37 +26,29 @@ namespace GuardiaIA
                       $"en área: {bc.PosicionPercibidaSonido} " +
                       $"(radio incertidumbre: {bc.RadioIncertidumbreSonido:F1}m)");
 
+            HaTerminado   = false;
             faseActual    = Fase.Girar;
             timerBusqueda = bc.TiempoBusqueda;
 
-            // Detenemos el movimiento mientras giramos
             acciones.Detener();
         }
-
 
         public void Ejecutar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
             switch (faseActual)
             {
-                case Fase.Girar:   EjecutarGiro(bc, acciones);              break;
-                case Fase.Esperar: EjecutarEspera(bc, acciones);            break;
-                case Fase.Moverse: EjecutarMovimiento(bc, acciones);        break;
-                case Fase.Buscar:  EjecutarBusqueda(cerebro, bc, acciones); break;
+                case Fase.Girar:   EjecutarGiro(bc, acciones);       break;
+                case Fase.Esperar: EjecutarEspera(bc, acciones);     break;
+                case Fase.Moverse: EjecutarMovimiento(bc, acciones); break;
+                case Fase.Buscar:  EjecutarBusqueda(bc, acciones);   break;
             }
         }
 
-
-        public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
-        {
-            // No necesita limpiar nada
-        }
-
+        public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones) { }
 
         private void EjecutarGiro(BaseConocimiento bc, Acciones acciones)
         {
-            bool giroCompletado = acciones.GirarHacia(bc.PosicionPercibidaSonido);
-
-            if (giroCompletado)
+            if (acciones.GirarHacia(bc.PosicionPercibidaSonido))
             {
                 Debug.Log("[EstadoInvestigarSonido] Giro completado → ESPERANDO");
                 timerEspera = DURACION_ESPERA;
@@ -86,22 +78,20 @@ namespace GuardiaIA
             }
         }
 
-        private void EjecutarBusqueda(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
+        private void EjecutarBusqueda(BaseConocimiento bc, Acciones acciones)
         {
             timerBusqueda -= Time.deltaTime;
             Debug.Log($"[EstadoInvestigarSonido] Buscando... {timerBusqueda:F1}s");
 
             if (timerBusqueda <= 0f)
             {
-                Debug.Log("[EstadoInvestigarSonido] Tiempo agotado → PATRULLANDO");
-                cerebro.CambiarEstado(new EstadoPatrulla());
+                Debug.Log("[EstadoInvestigarSonido] Tiempo agotado → señalando fin.");
+                HaTerminado = true;
                 return;
             }
 
             if (acciones.HaLlegado())
             {
-                // El radio de exploración es el de incertidumbre del sonido:
-                // buscamos exactamente en el área que "creímos" escuchar
                 Vector3 nuevoPunto = acciones.PuntoAleatorioNavMesh(
                     bc.PosicionPercibidaSonido,
                     bc.RadioIncertidumbreSonido

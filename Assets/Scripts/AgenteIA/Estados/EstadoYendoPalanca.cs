@@ -4,46 +4,58 @@ namespace GuardiaIA
 {
     public class EstadoYendoPalanca : IEstado
     {
+        public bool HaTerminado { get; private set; } = false;
+
+        // Cuando el estado es activado por un contrato, guardamos el id
+        // para liberar la conversación al salir (sea por éxito o por interrupción).
+        private readonly string conversationId;
+
+        public EstadoYendoPalanca(string conversationId = null)
+        {
+            this.conversationId = conversationId;
+        }
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
             Debug.Log("[EstadoYendoPalanca] Entrar → YENDO A PALANCA");
+            HaTerminado = false;
 
             if (bc.Palanca == null)
             {
-                Debug.LogWarning("[EstadoYendoPalanca] No hay palanca asignada. Volviendo a patrullar.");
-                cerebro.CambiarEstado(new EstadoPatrulla());
+                Debug.LogWarning("[EstadoYendoPalanca] No hay palanca asignada.");
+                // Señalamos fin: el árbitro decidirá el estado siguiente.
+                HaTerminado = true;
                 return;
             }
 
             acciones.MoverHacia(bc.Palanca.position, bc.VelocidadPatrulla);
         }
 
-
         public void Ejecutar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            // Esperamos a llegar
             if (!acciones.HaLlegado()) return;
 
-            // Ha llegado: activar la palanca
             acciones.ActivarPalanca(bc.Palanca);
 
-            // Si hay una nueva ruta, la aplicamos en la base de conocimiento
-            if (bc.RutaTrasPalanca != null && bc.RutaTrasPalanca.Length > 0)
+            // La ruta post-palanca solo se activa si este agente sabe que el objeto
+            // fue robado (hecho propio). Un contratista asignado por Contract Net
+            // no tiene ese hecho y debe volver a su ruta de patrulla normal.
+            if (bc.ObjetoDesaparecido && bc.RutaTrasPalanca != null && bc.RutaTrasPalanca.Length > 0)
             {
-                Debug.Log("[EstadoYendoPalanca] Cambiando ruta de patrulla.");
                 bc.RutaPatrulla         = bc.RutaTrasPalanca;
                 bc.IndicePatrullaActual = 0;
             }
 
-            // Secuencia completada: volver a patrullar
-            cerebro.CambiarEstado(new EstadoPatrulla());
+            cerebro.OnPalancaGestionada();
+            HaTerminado = true;
         }
-
 
         public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            cerebro.OnPalancaGestionada();
+            // Si fuimos activados por un contrato, liberamos la conversación
+            // independientemente de si terminamos bien o fuimos interrumpidos.
+            if (conversationId != null)
+                cerebro.GetComponent<GestorComunicacion>()?.LiberarConversacion(conversationId);
         }
     }
 }
