@@ -2505,6 +2505,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1606417169}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1606417178}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1606417177}
   m_SourcePrefab: {fileID: 100100000, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
 --- !u!4 &201917461 stripped
 Transform:
@@ -9950,6 +9956,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 809479459}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 809479468}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 809479467}
   m_SourcePrefab: {fileID: 100100000, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
 --- !u!4 &736101426 stripped
 Transform:
@@ -10295,6 +10307,30 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &757577281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 757577272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3632003339da4546b8e6db418038cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.GestorComunicacion
+--- !u!114 &757577282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 757577272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc594f30dbc59542a6711b90174d299, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.BuzonMensajes
 --- !u!1001 &759391262
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10735,6 +10771,30 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &809479467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 809479458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc594f30dbc59542a6711b90174d299, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.BuzonMensajes
+--- !u!114 &809479468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 809479458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3632003339da4546b8e6db418038cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.GestorComunicacion
 --- !u!1001 &811350129
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19116,6 +19176,30 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1606417177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1606417168}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc594f30dbc59542a6711b90174d299, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.BuzonMensajes
+--- !u!114 &1606417178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1606417168}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3632003339da4546b8e6db418038cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.GestorComunicacion
 --- !u!1 &1608141199
 GameObject:
   m_ObjectHideFlags: 0
@@ -21578,6 +21662,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1860545366}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1860545369}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1860545368}
   m_SourcePrefab: {fileID: 100100000, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
 --- !u!1 &1860545355 stripped
 GameObject:
@@ -21715,6 +21805,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e534e351a29cb3b4faf811b9e0201b59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.SensorSonido
+--- !u!114 &1860545368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1860545355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3632003339da4546b8e6db418038cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.GestorComunicacion
+--- !u!114 &1860545369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1860545355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc594f30dbc59542a6711b90174d299, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GuardiaIA.BuzonMensajes
 --- !u!1001 &1863418944
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22678,6 +22792,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 757577273}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 757577282}
+    - targetCorrespondingSourceObject: {fileID: 2561856515756825302, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 757577281}
   m_SourcePrefab: {fileID: 100100000, guid: 9f4452a7890ddcb4697f04e003a6b49a, type: 3}
 --- !u!1001 &1960133477
 PrefabInstance:

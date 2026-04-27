@@ -5,7 +5,7 @@ namespace GuardiaIA
 {
     /// Implementa el protocolo Contract Net de FIPA sobre el buzón de mensajes.
     ///
-    /// Cada guardia puede actuar como GESTOR o CONTRATISTA en distintos momentos:
+    /// Cada agente puede actuar como GESTOR o CONTRATISTA en distintos momentos:
     ///
     ///   GESTOR  — cuando detecta al ladrón, lanza un Cfp al resto, recoge
     ///             propuestas y asigna tareas (Perseguir / CerrarZona).
@@ -13,8 +13,9 @@ namespace GuardiaIA
     ///   CONTRATISTA — cuando recibe un Cfp, evalúa si puede ayudar y responde
     ///                 con Propose o Refuse. Si es aceptado, ejecuta la tarea.
     ///
-    /// El gestor no es un rol fijo: cualquier guardia que vea al ladrón primero
+    /// El gestor no es un rol fijo: cualquier agente que vea al ladrón primero
     /// se convierte en gestor para esa conversación.
+    /// Las cámaras nunca son contratistas: EstaEnPersecucion = true las excluye.
     public class GestorComunicacion : MonoBehaviour
     {
         // ── Vecinos ──────────────────────────────────────────────────────────
@@ -23,7 +24,11 @@ namespace GuardiaIA
 
         // ── Componentes propios ───────────────────────────────────────────────
         private BuzonMensajes buzon;
-        private Cerebro       cerebro;
+        private IAgente       agente;                     // antes: Cerebro cerebro
+
+        // Acceso interno al buzón propio: necesario para que Enviar() deposite
+        // mensajes en el buzón del receptor sin usar GetComponent cada vez.
+        internal BuzonMensajes Buzon => buzon;
 
         // ── Estado del protocolo como GESTOR ─────────────────────────────────
         private bool   esperandoPropuestas    = false;
@@ -41,8 +46,10 @@ namespace GuardiaIA
 
         private void Awake()
         {
-            buzon   = GetComponent<BuzonMensajes>();
-            cerebro = GetComponent<Cerebro>();
+            buzon  = GetComponent<BuzonMensajes>();
+            // GetComponent devuelve el primer componente que implemente IAgente
+            // (Cerebro o CerebroCamara) sin importar el tipo concreto.
+            agente = GetComponent<IAgente>();
         }
 
         private void Start()
@@ -72,10 +79,10 @@ namespace GuardiaIA
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  API PÚBLICA — llamada desde Cerebro / estados
+        //  API PÚBLICA — llamada desde IAgente / estados
         // ════════════════════════════════════════════════════════════════════
 
-        /// El guardia acaba de ver al ladrón y lanza el Contract Net como gestor.
+        /// El agente acaba de ver al ladrón y lanza el Contract Net como gestor.
         /// Solo inicia una conversación si no hay una ya activa.
         public void IniciarContractNet(Vector3 posicionLadron)
         {
@@ -95,8 +102,8 @@ namespace GuardiaIA
                 var cfp = new MensajeACL
                 {
                     Performativa   = Performativa.Cfp,
-                    Emisor         = cerebro,
-                    Receptor       = vecino.cerebro,
+                    Emisor         = this,                // MonoBehaviour, no IAgente
+                    Receptor       = vecino,              // ídem
                     ConversationId = conversacionActual,
                     Contenido      = new ContenidoMensaje { PosicionLadron = posicionLadron }
                 };
@@ -107,16 +114,13 @@ namespace GuardiaIA
         /// Notifica al gestor de una conversación que la tarea fue completada.
         public void NotificarTareaCompletada(string conversationId)
         {
-            // Buscamos al gestor de esa conversación entre los vecinos
-            // El gestor es quien tiene esa conversación activa — lo sabemos
-            // porque el conversation-id contiene su nombre.
             foreach (var vecino in vecinos)
             {
                 var msg = new MensajeACL
                 {
                     Performativa   = Performativa.InformDone,
-                    Emisor         = cerebro,
-                    Receptor       = vecino.cerebro,
+                    Emisor         = this,
+                    Receptor       = vecino,
                     ConversationId = conversationId,
                     InReplyTo      = conversationId
                 };
@@ -167,16 +171,17 @@ namespace GuardiaIA
         private void ProcesarCfp(MensajeACL cfp)
         {
             // Si ya estamos en una conversación como contratista, rechazamos.
-            // Si estamos persiguiendo activamente, también rechazamos.
+            // Si EstaEnPersecucion = true (guardias persiguiendo o cámaras siempre),
+            // también rechazamos: las cámaras quedan automáticamente excluidas.
             bool ocupado = conversacionComoContratista != null
-                        || cerebro.EstaEnPersecucion;
+                        || agente.EstaEnPersecucion;
 
             if (ocupado)
             {
                 Enviar(new MensajeACL
                 {
                     Performativa   = Performativa.Refuse,
-                    Emisor         = cerebro,
+                    Emisor         = this,
                     Receptor       = cfp.Emisor,
                     ConversationId = cfp.ConversationId,
                     InReplyTo      = cfp.ConversationId
@@ -193,13 +198,13 @@ namespace GuardiaIA
             Enviar(new MensajeACL
             {
                 Performativa   = Performativa.Propose,
-                Emisor         = cerebro,
+                Emisor         = this,
                 Receptor       = cfp.Emisor,
                 ConversationId = cfp.ConversationId,
                 InReplyTo      = cfp.ConversationId,
                 Contenido      = new ContenidoMensaje
                 {
-                    PosicionLadron   = cfp.Contenido.PosicionLadron,
+                    PosicionLadron    = cfp.Contenido.PosicionLadron,
                     DistanciaAlLadron = distancia
                 }
             });
@@ -214,11 +219,11 @@ namespace GuardiaIA
             switch (msg.Contenido.Tarea)
             {
                 case TareaContrato.CerrarZona:
-                    cerebro.OnAsignadoCerrarZona(msg.Contenido.PosicionLadron, msg.ConversationId);
+                    agente.OnAsignadoCerrarZona(msg.Contenido.PosicionLadron, msg.ConversationId);
                     break;
 
                 case TareaContrato.IrAPalanca:
-                    cerebro.OnAsignadoIrAPalanca(msg.ConversationId);
+                    agente.OnAsignadoIrAPalanca(msg.ConversationId);
                     break;
             }
         }
@@ -227,7 +232,7 @@ namespace GuardiaIA
         {
             // Un vecino nos informa de la posición del ladrón sin iniciar contrato.
             // Lo tratamos igual que si nuestro sensor lo hubiera visto.
-            cerebro.OnJugadorDetectado(msg.Contenido.PosicionLadron);
+            agente.OnJugadorDetectado(msg.Contenido.PosicionLadron);
         }
 
         // ── Rol GESTOR ───────────────────────────────────────────────────────
@@ -265,7 +270,7 @@ namespace GuardiaIA
                     Enviar(new MensajeACL
                     {
                         Performativa   = Performativa.AcceptProposal,
-                        Emisor         = cerebro,
+                        Emisor         = this,
                         Receptor       = prop.Emisor,
                         ConversationId = conversacionActual,
                         InReplyTo      = prop.ConversationId,
@@ -282,7 +287,7 @@ namespace GuardiaIA
                     Enviar(new MensajeACL
                     {
                         Performativa   = Performativa.AcceptProposal,
-                        Emisor         = cerebro,
+                        Emisor         = this,
                         Receptor       = prop.Emisor,
                         ConversationId = conversacionActual,
                         InReplyTo      = prop.ConversationId,
@@ -299,14 +304,13 @@ namespace GuardiaIA
                     Enviar(new MensajeACL
                     {
                         Performativa   = Performativa.RejectProposal,
-                        Emisor         = cerebro,
+                        Emisor         = this,
                         Receptor       = prop.Emisor,
                         ConversationId = conversacionActual,
                         InReplyTo      = prop.ConversationId
                     });
 
-                    prop.Emisor.GetComponent<GestorComunicacion>()
-                        ?.LiberarConversacion(conversacionActual);
+                    prop.Emisor?.LiberarConversacion(conversacionActual);
                 }
             }
 
@@ -329,7 +333,7 @@ namespace GuardiaIA
         private void Enviar(MensajeACL mensaje)
         {
             Debug.Log($"[GestorComunicacion] Enviando: {mensaje}");
-            mensaje.Receptor.GetComponent<BuzonMensajes>()?.Recibir(mensaje);
+            mensaje.Receptor?.Buzon.Recibir(mensaje);
         }
     }
 }

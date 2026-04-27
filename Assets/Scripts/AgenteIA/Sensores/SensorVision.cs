@@ -9,7 +9,7 @@ namespace GuardiaIA
         private float      rangoVision;
         private float      anguloVision;
         private LayerMask  capasObstaculo;
-        private Cerebro    cerebro;
+        private IAgente    agente;                        // antes: Cerebro cerebro
         private bool jugadorVisibleAnterior  = false;
 
         // Para el objeto vigilado:
@@ -22,17 +22,17 @@ namespace GuardiaIA
         private float  _anguloGizmo;
 
 
-        // El Cerebro llama a este método en su Start().
+        // El agente propietario llama a este método en su Start().
         // A partir de aquí el sensor trabaja de forma autónoma.
         public void Inicializar(
-            Cerebro    cerebro,
+            IAgente    agente,                            // antes: Cerebro cerebro
             Transform  jugador,
             Transform  objetoVigilado,
             float      rangoVision,
             float      anguloVision,
             LayerMask  capasObstaculo)
         {
-            this.cerebro        = cerebro;
+            this.agente         = agente;
             this.jugador        = jugador;
             this.objetoVigilado = objetoVigilado;
             this.rangoVision    = rangoVision;
@@ -47,7 +47,7 @@ namespace GuardiaIA
 
         private void Update()
         {
-            if (cerebro == null) return;
+            if (agente == null) return;
 
             ComprobarJugador();
             ComprobarObjetoVigilado();
@@ -64,13 +64,13 @@ namespace GuardiaIA
             if (visibleAhora)
             {
                 if (!jugadorVisibleAnterior)
-                    cerebro.OnJugadorDetectado(jugador.position);
+                    agente.OnJugadorDetectado(jugador.position);
                 else
-                    cerebro.OnActualizarPosicionJugador(jugador.position);
+                    agente.OnActualizarPosicionJugador(jugador.position);
             }
             else if (jugadorVisibleAnterior)
             {
-                cerebro.OnJugadorPerdido();
+                agente.OnJugadorPerdido();
             }
 
             jugadorVisibleAnterior = visibleAhora;
@@ -114,7 +114,7 @@ namespace GuardiaIA
             if (EstaEnCono(posicionMemorizada))
             {
                 Debug.Log("[SensorVision] ¡Objeto vigilado ha desaparecido!");
-                cerebro.OnObjetoDesaparecido();
+                agente.OnObjetoDesaparecido();
                 objetoYaNotificado = true;
             }
         }

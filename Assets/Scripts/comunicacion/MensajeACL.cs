@@ -29,12 +29,17 @@ namespace GuardiaIA
 
     /// Mensaje FIPA-ACL.
     /// Refleja la estructura estándar: performativa + parámetros de cabecera + contenido.
+    ///
+    /// Emisor y Receptor son GestorComunicacion en lugar de Cerebro para que el
+    /// sistema de mensajería funcione con cualquier tipo de agente (guardias, cámaras…)
+    /// sin depender del tipo concreto del cerebro. GestorComunicacion está presente
+    /// en todos los agentes comunicantes y tiene el buzón directamente accesible.
     public class MensajeACL
     {
         // Cabecera (obligatoria)
-        public Performativa Performativa    { get; set; }
-        public Cerebro      Emisor          { get; set; }
-        public Cerebro      Receptor        { get; set; }
+        public Performativa        Performativa    { get; set; }
+        public GestorComunicacion  Emisor          { get; set; }  // antes: Cerebro
+        public GestorComunicacion  Receptor        { get; set; }  // antes: Cerebro
 
         // Cabecera (opcional)
         public string       Ontologia       { get; set; } = "Seguridad";
