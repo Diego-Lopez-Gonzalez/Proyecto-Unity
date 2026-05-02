@@ -2,24 +2,6 @@ using UnityEngine;
 
 namespace GuardiaIA
 {
-    /// Contrato que deben cumplir todos los cerebros de agente (guardias, cámaras…).
-    /// SensorVision y GestorComunicacion dependen únicamente de esta interfaz,
-    /// lo que permite añadir nuevos tipos de agente sin tocar esos componentes.
-    ///
-    /// Callbacks de visión — llamados por SensorVision:
-    ///   · OnJugadorDetectado          → el jugador acaba de entrar en el cono.
-    ///   · OnActualizarPosicionJugador → el jugador sigue visible, posición nueva.
-    ///   · OnJugadorPerdido            → el jugador ha salido del cono.
-    ///   · OnObjetoDesaparecido        → el objeto vigilado no está donde estaba.
-    ///
-    /// Callbacks de contrato — llamados por GestorComunicacion:
-    ///   · OnTareaAsignada   → el gestor aceptó la propuesta y asigna una tarea concreta.
-    ///   · OnTareaCancelada  → el gestor canceló la conversación en curso.
-    ///
-    /// Propiedad de estado — leída por GestorComunicacion para decidir disponibilidad:
-    ///   · EstaEnPersecucion → true solo mientras el agente persigue activamente.
-    ///                         Las cámaras devuelven true siempre para quedar excluidas
-    ///                         como contratistas.
     public interface IAgente
     {
         // ── Callbacks de visión ──────────────────────────────────────────────
@@ -33,6 +15,19 @@ namespace GuardiaIA
         void OnTareaCancelada(string conversationId);
 
         // ── Estado ───────────────────────────────────────────────────────────
-        bool EstaEnPersecucion { get; }
+
+        /// True cuando el agente NO puede aceptar ningún contrato nuevo
+        /// (persecución activa o tarea de contrato en curso).
+        /// Sustituye a EstaEnPersecucion para reflejar la ocupación real.
+        bool EstaOcupado { get; }
+
+        /// Prioridad de la tarea de contrato que está ejecutando actualmente.
+        /// Si no tiene ninguna tarea activa devuelve Baja.
+        PrioridadContrato PrioridadTareaActual { get; }
+
+        /// Llamado por ContractNet cuando llega un Cfp de mayor prioridad.
+        /// El agente debe cancelar su tarea actual limpiamente antes de
+        /// que ContractNet envíe el nuevo Propose.
+        void InterrumpirTareaActual();
     }
 }

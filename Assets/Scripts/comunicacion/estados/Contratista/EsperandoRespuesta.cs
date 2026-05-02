@@ -2,11 +2,6 @@ using UnityEngine;
 
 namespace GuardiaIA.estados.Contratista
 {
-    /// Estado del CONTRATISTA: el agente envió su Propose y espera la decisión del gestor.
-    ///
-    /// · AcceptProposal → notifica al agente local y transiciona a EjecutandoTarea.
-    /// · RejectProposal → la conversación termina (Done); el agente queda libre.
-    /// · Cancel         → el gestor abortó antes de decidir; vamos directamente a Done.
     public class EsperandoRespuesta : IEstadoCN
     {
         public void OnEnter(ContextoCN ctx)
@@ -22,15 +17,18 @@ namespace GuardiaIA.estados.Contratista
             switch (msg.Performativa)
             {
                 case Performativa.AcceptProposal:
-                    // Guardamos referencia al gestor remoto para poder enviarle
-                    // InformDone / Failure cuando terminemos la tarea
                     ctx.GestorRemoto = msg.Emisor;
 
                     Debug.Log($"[EsperandoRespuesta] Aceptado por {msg.Emisor?.name} " +
-                              $"| tarea: {msg.Contenido.Tarea}");
+                              $"| tarea:{msg.Contenido.Tarea} [{ctx.Prioridad}]");
 
-                    // Notificamos al cerebro local para que ejecute la tarea
-                    ctx.Gestor.Agente.OnTareaAsignada(msg.Contenido.Tarea, msg.ConversationId);
+                    // Notificamos al cerebro con la prioridad del contrato
+                    // para que pueda comparar con futuros Cfp entrantes.
+                    ctx.Gestor.NotificarTareaAsignada(
+                        msg.Contenido.Tarea,
+                        msg.ConversationId,
+                        ctx.Prioridad);
+
                     return new EjecutandoTarea();
 
                 case Performativa.RejectProposal:

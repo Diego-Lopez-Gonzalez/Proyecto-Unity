@@ -81,11 +81,9 @@ namespace GuardiaIA
         private void EjecutarBusqueda(BaseConocimiento bc, Acciones acciones)
         {
             timerBusqueda -= Time.deltaTime;
-            Debug.Log($"[EstadoInvestigarSonido] Buscando... {timerBusqueda:F1}s");
 
             if (timerBusqueda <= 0f)
             {
-                Debug.Log("[EstadoInvestigarSonido] Tiempo agotado → señalando fin.");
                 HaTerminado = true;
                 return;
             }

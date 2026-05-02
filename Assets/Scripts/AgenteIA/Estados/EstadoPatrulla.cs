@@ -15,13 +15,11 @@ namespace GuardiaIA
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            Debug.Log("[EstadoPatrulla] Entrar → PATRULLANDO");
             esperandoEnPunto = false;
             tiempoEnPunto    = 0f;
 
             if (bc.RutaPatrulla == null || bc.RutaPatrulla.Length == 0)
             {
-                Debug.LogWarning("[EstadoPatrulla] La ruta de patrulla está vacía.");
                 return;
             }
 

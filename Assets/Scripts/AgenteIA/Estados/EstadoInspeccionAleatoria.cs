@@ -27,7 +27,6 @@ namespace GuardiaIA
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            Debug.Log("[EstadoInspeccionAleatoria] Entrar → INSPECCIÓN PATRULLA");
             HaTerminado            = false;
             timerRevisarPalanca    = 0f;
             timerInspeccionEnPunto = 0f;
@@ -41,7 +40,6 @@ namespace GuardiaIA
             timerRevisarPalanca += Time.deltaTime;
             if (timerRevisarPalanca >= TIEMPO_ANTES_REVISAR_PALANCA)
             {
-                Debug.Log("[EstadoInspeccionAleatoria] Tiempo sin novedad → revisando palanca.");
 
                 // Escribimos el hecho ANTES de señalar HaTerminado,
                 // para que EvaluarPrioridades lo encuentre ya actualizado.
@@ -67,7 +65,6 @@ namespace GuardiaIA
         {
             if (!acciones.HaLlegado()) return;
 
-            Debug.Log($"[EstadoInspeccionAleatoria] Llegado a punto {bc.IndicePatrullaActual} → inspeccionando.");
             timerInspeccionEnPunto = 0f;
             faseActual             = Fase.InspeccionarPunto;
             ElegirPuntoAleatorio(bc, acciones);
@@ -83,7 +80,6 @@ namespace GuardiaIA
             if (timerInspeccionEnPunto >= DURACION_INSPECCION_POR_PUNTO)
             {
                 bc.IndicePatrullaActual = (bc.IndicePatrullaActual + 1) % bc.RutaPatrulla.Length;
-                Debug.Log($"[EstadoInspeccionAleatoria] Inspección completa → punto {bc.IndicePatrullaActual}.");
                 acciones.MoverHacia(PuntoActual(bc), bc.VelocidadPatrulla);
                 faseActual = Fase.MoverAlPunto;
             }

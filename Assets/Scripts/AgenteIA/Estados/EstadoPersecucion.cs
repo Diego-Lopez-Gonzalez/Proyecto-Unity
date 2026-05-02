@@ -13,7 +13,6 @@ namespace GuardiaIA
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            Debug.Log("[EstadoPersecucion] Entrar → PERSIGUIENDO");
             cerebro.SensorTacto.ActivarCaptura();
             acciones.MoverHacia(bc.UltimaPosicionJugador, bc.VelocidadPersecucion);
         }

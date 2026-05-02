@@ -92,7 +92,6 @@ namespace GuardiaIA
                 {
                     objetoConfirmado   = true;
                     posicionMemorizada = objetoVigilado.position;
-                    Debug.Log("[SensorVision] Objeto vigilado confirmado por primera vez.");
                 }
                 return;
             }
@@ -113,7 +112,6 @@ namespace GuardiaIA
             // si simplemente miramos para otro lado, no podemos saberlo todavía.
             if (EstaEnCono(posicionMemorizada))
             {
-                Debug.Log("[SensorVision] ¡Objeto vigilado ha desaparecido!");
                 agente.OnObjetoDesaparecido();
                 objetoYaNotificado = true;
             }

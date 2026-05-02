@@ -76,10 +76,6 @@ namespace GuardiaIA
             Vector3 posicionReal      = fuenteMasCercana.transform.position;
             Vector3 posicionPercibida = AplicarIncertidumbre(posicionReal, radioDesvio);
 
-            Debug.Log($"[SensorSonido] Sonido detectado. " +
-                      $"Real: {posicionReal} | Percibido: {posicionPercibida} " +
-                      $"(desvío: {radioDesvio:F1}m)");
-
             cerebro.OnSonidoDetectado(posicionPercibida, radioDesvio);
         }
 

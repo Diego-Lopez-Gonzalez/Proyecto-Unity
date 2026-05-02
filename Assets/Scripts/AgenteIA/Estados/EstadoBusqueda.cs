@@ -10,7 +10,6 @@ namespace GuardiaIA
 
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            Debug.Log("[EstadoBusqueda] Entrar → BUSCANDO");
             HaTerminado = false;
             timerActual = bc.TiempoBusqueda;
             acciones.MoverHacia(bc.UltimaPosicionJugador, bc.VelocidadPatrulla);
@@ -19,11 +18,9 @@ namespace GuardiaIA
         public void Ejecutar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
             timerActual -= Time.deltaTime;
-            Debug.Log($"[EstadoBusqueda] Timer restante: {timerActual:F1}s");
 
             if (timerActual <= 0f)
             {
-                Debug.Log("[EstadoBusqueda] Tiempo agotado → señalando fin.");
                 // No elige sucesor: avisa al árbitro y este decide.
                 HaTerminado = true;
                 return;
@@ -35,7 +32,6 @@ namespace GuardiaIA
                     bc.UltimaPosicionJugador,
                     bc.RadioBusqueda
                 );
-                Debug.Log($"[EstadoBusqueda] Explorando nuevo punto: {nuevoPunto}");
                 acciones.MoverHacia(nuevoPunto, bc.VelocidadPatrulla);
             }
         }

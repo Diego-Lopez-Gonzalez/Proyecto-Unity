@@ -1,21 +1,28 @@
 namespace GuardiaIA
 {
-    /// Performativas definidas en FIPA-ACL relevantes para este sistema.
-    /// Inform y Request son las básicas; el resto son macros sobre ellas.
     public enum Performativa
     {
-        // Básicas
-        Inform,         // El emisor informa de un hecho al receptor.
-        Request,        // El emisor solicita al receptor que ejecute una acción.
+        Inform,
+        Request,
+        Cfp,
+        Propose,
+        Refuse,
+        AcceptProposal,
+        RejectProposal,
+        InformDone,
+        Failure,
+        Cancel,
+    }
 
-        // Contract Net
-        Cfp,            // Call for Proposals: el gestor lanza la convocatoria.
-        Propose,        // El contratista ofrece su disponibilidad.
-        Refuse,         // El contratista rechaza participar.
-        AcceptProposal, // El gestor acepta la propuesta de un contratista.
-        RejectProposal, // El gestor rechaza la propuesta de un contratista.
-        InformDone,     // El contratista notifica que completó la tarea.
-        Failure,        // El contratista notifica que no pudo completar la tarea.
-        Cancel,         // El gestor cancela la conversación en curso.
+    /// Prioridad de un contrato declarada por el gestor en el Cfp.
+    /// El contratista la usa para decidir si interrumpe una tarea activa.
+    ///   Alta   → ladrón detectado, persecución en curso.
+    ///   Media  → objeto robado, gestión de alarma.
+    ///   Baja   → tareas de vigilancia pasiva, inspección.
+    public enum PrioridadContrato
+    {
+        Baja   = 0,
+        Media  = 1,
+        Alta   = 2,
     }
 }
