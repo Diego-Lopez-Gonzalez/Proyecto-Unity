@@ -6,9 +6,8 @@ namespace GuardiaIA
     {
         public bool HaTerminado { get; private set; } = false;
 
-        // Cuando el estado es activado por un contrato, guardamos el id
-        // para liberar la conversación al salir (sea por éxito o por interrupción).
         private readonly string conversationId;
+        private bool tareaNotificada = false; // evita doble liberación
 
         public EstadoYendoPalanca(string conversationId = null)
         {
@@ -18,12 +17,12 @@ namespace GuardiaIA
         public void Entrar(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
             Debug.Log("[EstadoYendoPalanca] Entrar → YENDO A PALANCA");
-            HaTerminado = false;
+            HaTerminado      = false;
+            tareaNotificada  = false;
 
             if (bc.Palanca == null)
             {
                 Debug.LogWarning("[EstadoYendoPalanca] No hay palanca asignada.");
-                // Señalamos fin: el árbitro decidirá el estado siguiente.
                 HaTerminado = true;
                 return;
             }
@@ -37,9 +36,6 @@ namespace GuardiaIA
 
             acciones.ActivarPalanca(bc.Palanca);
 
-            // La ruta post-palanca solo se activa si este agente sabe que el objeto
-            // fue robado (hecho propio). Un contratista asignado por Contract Net
-            // no tiene ese hecho y debe volver a su ruta de patrulla normal.
             if (bc.ObjetoDesaparecido && bc.RutaTrasPalanca != null && bc.RutaTrasPalanca.Length > 0)
             {
                 bc.RutaPatrulla         = bc.RutaTrasPalanca;
@@ -47,14 +43,23 @@ namespace GuardiaIA
             }
 
             cerebro.OnPalancaGestionada();
+
+            // FIX: notificar InformDone al gestor para que EsperandoResultados cierre correctamente.
+            // El flujo Done → OnConversacionTerminada → Liberar se encarga de limpiar ambos lados.
+            if (conversationId != null)
+            {
+                tareaNotificada = true;
+                cerebro.GetComponent<GestorComunicacion>()?.NotificarTareaCompletada(conversationId);
+            }
+
             HaTerminado = true;
         }
 
         public void Salir(Cerebro cerebro, BaseConocimiento bc, Acciones acciones)
         {
-            // Si fuimos activados por un contrato, liberamos la conversación
-            // independientemente de si terminamos bien o fuimos interrumpidos.
-            if (conversationId != null)
+            // FIX: solo liberamos si fuimos interrumpidos (no notificamos la tarea).
+            // Si tareaNotificada == true, el flujo Done ya llamará Liberar.
+            if (conversationId != null && !tareaNotificada)
                 cerebro.GetComponent<GestorComunicacion>()?.LiberarConversacion(conversationId);
         }
     }

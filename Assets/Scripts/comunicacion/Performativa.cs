@@ -16,5 +16,6 @@ namespace GuardiaIA
         RejectProposal, // El gestor rechaza la propuesta de un contratista.
         InformDone,     // El contratista notifica que completó la tarea.
         Failure,        // El contratista notifica que no pudo completar la tarea.
+        Cancel,         // El gestor cancela la conversación en curso.
     }
 }

@@ -10,12 +10,20 @@ namespace GuardiaIA
         // Posición del ladrón (usada en Inform y Cfp de avistamiento)
         public Vector3 PosicionLadron;
 
-        // Tarea asignada por el gestor al aceptar una propuesta
+        // Tarea asignada por el gestor al aceptar una propuesta (AcceptProposal)
         public TareaContrato Tarea;
 
         // Distancia del contratista al ladrón (usada en Propose para que
         // el gestor pueda comparar ofertas y elegir la mejor)
         public float DistanciaAlLadron;
+
+        // Lista de tareas disponibles que el gestor anuncia en el Cfp.
+        // Permite al contratista saber qué puede asumir antes de proponer.
+        public TareaContrato[] TareasDisponibles;
+
+        // Tareas que el contratista declara poder ejecutar (enviado en Propose).
+        // El gestor cruza esta lista con TareasDisponibles para adjudicar.
+        public TareaContrato[] TareasPosibles;
     }
 
     /// Tareas que el gestor puede asignar a los contratistas.
@@ -32,19 +40,18 @@ namespace GuardiaIA
     ///
     /// Emisor y Receptor son GestorComunicacion en lugar de Cerebro para que el
     /// sistema de mensajería funcione con cualquier tipo de agente (guardias, cámaras…)
-    /// sin depender del tipo concreto del cerebro. GestorComunicacion está presente
-    /// en todos los agentes comunicantes y tiene el buzón directamente accesible.
+    /// sin depender del tipo concreto del cerebro.
     public class MensajeACL
     {
         // Cabecera (obligatoria)
         public Performativa        Performativa    { get; set; }
-        public GestorComunicacion  Emisor          { get; set; }  // antes: Cerebro
-        public GestorComunicacion  Receptor        { get; set; }  // antes: Cerebro
+        public GestorComunicacion  Emisor          { get; set; }
+        public GestorComunicacion  Receptor        { get; set; }
 
         // Cabecera (opcional)
         public string       Ontologia       { get; set; } = "Seguridad";
         public string       ConversationId  { get; set; }
-        public string       InReplyTo       { get; set; }  // id del mensaje al que responde
+        public string       InReplyTo       { get; set; }
 
         // Contenido
         public ContenidoMensaje Contenido   { get; set; }

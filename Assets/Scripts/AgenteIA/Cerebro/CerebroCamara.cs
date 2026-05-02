@@ -26,8 +26,8 @@ namespace GuardiaIA
         [SerializeField] private LayerMask capasObstaculo;
 
         [Header("Rotación")]
-        [SerializeField] private bool  rotarHaciaJugador  = true;
-        [SerializeField] private float velocidadRotacion   = 3f;
+        [SerializeField] private bool  rotarHaciaJugador = true;
+        [SerializeField] private float velocidadRotacion  = 3f;
 
         // Componentes internos
         private SensorVision       sensorVision;
@@ -36,14 +36,12 @@ namespace GuardiaIA
         // Acceso público para GestorComunicacion (igual que en Cerebro).
         public GestorComunicacion GestorComunicacion => gestorComunicacion;
 
-        // La cámara nunca persigue: siempre puede actuar como... espera, en realidad
-        // la cámara NUNCA debe ser contratista porque no puede moverse.
-        // Devolvemos true para que GestorComunicacion la rechace como contratista
-        // en ProcesarCfp, igual que rechaza a un guardia en persecución.
+        // La cámara devuelve true siempre para quedar excluida como contratista:
+        // no puede moverse ni ejecutar tareas físicas.
         public bool EstaEnPersecucion => true;
 
         // Estado interno
-        private bool   jugadorEnCono       = false;
+        private bool    jugadorEnCono      = false;
         private Vector3 posicionJugadorActual;
 
         private void Start()
@@ -68,22 +66,24 @@ namespace GuardiaIA
                 RotarHaciaJugador();
         }
 
-        // ── Implementación de IAgente — callbacks de visión ──────────────────
+        // ── Callbacks de visión (IAgente) ────────────────────────────────────
 
         public void OnJugadorDetectado(Vector3 posicion)
         {
-            jugadorEnCono          = true;
-            posicionJugadorActual  = posicion;
+            jugadorEnCono         = true;
+            posicionJugadorActual = posicion;
 
             Debug.Log($"[CerebroCamara] {name} detectó al jugador en {posicion}");
 
             // Lanzamos el Contract Net para que los guardias vecinos reaccionen.
-            gestorComunicacion?.IniciarContractNet(posicion);
+            gestorComunicacion?.IniciarContractNet(
+                posicion,
+                new[] { TareaContrato.CerrarZona, TareaContrato.IrAPalanca }
+            );
         }
 
         public void OnActualizarPosicionJugador(Vector3 posicion)
         {
-            // Actualizamos la posición para que la rotación sea fluida.
             posicionJugadorActual = posicion;
         }
 
@@ -95,24 +95,22 @@ namespace GuardiaIA
 
         public void OnObjetoDesaparecido()
         {
-            // La cámara no gestiona objetos vigilados: no hace nada.
-            // El método existe para cumplir la interfaz IAgente.
+            // La cámara no gestiona objetos vigilados.
         }
 
-        // ── Implementación de IAgente — callbacks de contrato ────────────────
+        // ── Callbacks de contrato (IAgente) ──────────────────────────────────
 
-        public void OnAsignadoCerrarZona(Vector3 posicionLadron, string conversationId)
+        /// La cámara nunca debería recibir una tarea: EstaEnPersecucion = true
+        /// la excluye de las propuestas. Lo registramos como advertencia defensiva.
+        public void OnTareaAsignada(TareaContrato tarea, string conversationId)
         {
-            // La cámara no puede moverse: nunca debería recibir esta tarea
-            // porque EstaEnPersecucion = true la excluye de las propuestas.
-            // Lo registramos como advertencia por si acaso.
-            Debug.LogWarning($"[CerebroCamara] {name} recibió OnAsignadoCerrarZona inesperadamente.");
+            Debug.LogWarning($"[CerebroCamara] {name} recibió OnTareaAsignada inesperadamente " +
+                             $"(tarea:{tarea} conv:{conversationId}).");
         }
 
-        public void OnAsignadoIrAPalanca(string conversationId)
+        public void OnTareaCancelada(string conversationId)
         {
-            // Ídem: no debería ocurrir, pero lo registramos.
-            Debug.LogWarning($"[CerebroCamara] {name} recibió OnAsignadoIrAPalanca inesperadamente.");
+            // No hace nada: la cámara nunca ejecuta tareas.
         }
 
         // ── Rotación ─────────────────────────────────────────────────────────
@@ -137,8 +135,8 @@ namespace GuardiaIA
         {
             // Dibujamos el cono de visión en cian para distinguirlo del guardia (amarillo).
             Gizmos.color = Color.cyan;
-            float semi    = anguloVision * 0.5f;
-            Vector3 o     = transform.position + Vector3.up * 1.5f;
+            float semi   = anguloVision * 0.5f;
+            Vector3 o    = transform.position + Vector3.up * 1.5f;
 
             Gizmos.DrawRay(o, Quaternion.Euler(0,  semi, 0) * transform.forward * rangoVision);
             Gizmos.DrawRay(o, Quaternion.Euler(0, -semi, 0) * transform.forward * rangoVision);
