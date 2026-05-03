@@ -7,7 +7,7 @@ namespace GuardiaIA.estados.Gestor
     {
         // FIX: timeout de seguridad para evitar conversaciones colgadas si un
         // contratista cae sin enviar InformDone ni Failure.
-        private const float TIMEOUT = 60f;
+        private const float TIMEOUT = 120f;
         private float timer;
 
         private HashSet<GestorComunicacion> pendientes;

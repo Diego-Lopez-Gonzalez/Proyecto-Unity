@@ -19,6 +19,7 @@ namespace GuardiaIA
         public int         IndicePatrullaActual { get; set; }
 
         public List<Transform> PuntosCorte      { get; set; } = new List<Transform>();
+        public List<Transform> PuntosBarrido    { get; set; } = new List<Transform>();
 
         public float VelocidadPatrulla          { get; set; }
         public float VelocidadPersecucion       { get; set; }
@@ -36,8 +37,6 @@ namespace GuardiaIA
         public int           IndiceZonaCorte     { get; set; }
         public string        ConversationIdTarea  { get; set; }
 
-        /// Prioridad del contrato activo. Se actualiza junto con TareaAsignada.
-        /// Se usa en IAgente.PrioridadTareaActual para comparar con contratos entrantes.
         public PrioridadContrato PrioridadTareaActual { get; set; } = PrioridadContrato.Baja;
     }
 }

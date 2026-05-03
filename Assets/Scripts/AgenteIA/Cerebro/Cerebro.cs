@@ -43,6 +43,9 @@ namespace GuardiaIA
         [Header("Puntos de cierre")]
         [SerializeField] private List<Transform> puntosCorte = new List<Transform>();
 
+        [Header("Barrido")]
+        [SerializeField] private List<Transform> puntosBarrido = new List<Transform>();
+
         private BaseConocimiento   conocimiento;
         private IEstado            estadoActual;
         private Acciones           acciones;
@@ -56,28 +59,20 @@ namespace GuardiaIA
 
         // ── IAgente ───────────────────────────────────────────────────────────
 
-        /// True cuando el guardia está persiguiendo o ejecutando una tarea de contrato.
-        /// ContractNet.CrearParticipante lo consulta antes de enviar Propose o Refuse.
         public bool EstaOcupado =>
             estadoActual is EstadoPersecucion  ||
             estadoActual is EstadoCerrarZona   ||
-            estadoActual is EstadoYendoPalanca;
+            estadoActual is EstadoYendoPalanca ||
+            estadoActual is EstadoBarrerMapa;
 
-        /// Prioridad del contrato que está ejecutando actualmente.
-        /// Si no tiene tarea de contrato activa devuelve Baja (mínimo).
         public PrioridadContrato PrioridadTareaActual =>
             conocimiento?.PrioridadTareaActual ?? PrioridadContrato.Baja;
 
-        /// Llamado por ContractNet cuando llega un Cfp de mayor prioridad.
-        /// Limpia el contrato activo para que el guardia quede libre
-        /// antes de que ContractNet envíe el nuevo Propose.
         public void InterrumpirTareaActual()
         {
             Debug.Log($"[Cerebro] {name} interrumpe tarea activa " +
                       $"(conv:{conocimiento.ConversationIdTarea}) por contrato de mayor prioridad.");
 
-            // Notificamos al gestor del contrato anterior con Failure para que
-            // EsperandoResultados cierre la conversación sin esperar el timeout.
             if (conocimiento.ConversationIdTarea != null)
                 gestorComunicacion?.NotificarTareaFallida(conocimiento.ConversationIdTarea);
 
@@ -103,7 +98,8 @@ namespace GuardiaIA
                 TiempoEsperaEnPunto  = tiempoEsperaEnPunto,
                 TiempoBusqueda       = tiempoBusqueda,
                 RadioBusqueda        = radioBusqueda,
-                PuntosCorte          = puntosCorte
+                PuntosCorte          = puntosCorte,
+                PuntosBarrido        = puntosBarrido
             };
 
             acciones           = GetComponent<Acciones>();
@@ -173,10 +169,17 @@ namespace GuardiaIA
                 return;
             }
 
-            // P5b: tarea de contrato → perseguir (asignado por otro guardia vía Contract Net).
+            // P5b: tarea de contrato → perseguir.
             if (conocimiento.TareaAsignada == TareaContrato.Perseguir)
             {
                 CambiarEstado(new EstadoPersecucion());
+                return;
+            }
+
+            // P5c: tarea de contrato → barrer mapa.
+            if (conocimiento.TareaAsignada == TareaContrato.BarrerMapa)
+            {
+                CambiarEstado(new EstadoBarrerMapa(conocimiento.ConversationIdTarea));
                 return;
             }
 
@@ -198,7 +201,6 @@ namespace GuardiaIA
             conocimiento.JugadorVisible        = true;
             conocimiento.UltimaPosicionJugador = posicion;
 
-            // El Planificador decide qué tareas delegar según evento y prioridad.
             const PrioridadContrato prioridad = PrioridadContrato.Alta;
             var tareas = Planificador.PlanParaEvento(EventoSeguridad.JugadorDetectado, prioridad);
             gestorComunicacion?.IniciarContractNet(posicion, tareas, prioridad);
@@ -230,7 +232,6 @@ namespace GuardiaIA
         {
             conocimiento.ObjetoDesaparecido = true;
 
-            // El Planificador decide qué tareas delegar según evento y prioridad.
             const PrioridadContrato prioridad = PrioridadContrato.Media;
             var tareas = Planificador.PlanParaEvento(EventoSeguridad.ObjetoRobado, prioridad);
             gestorComunicacion?.IniciarContractNet(
@@ -264,14 +265,9 @@ namespace GuardiaIA
             Debug.Log($"[Cerebro] {name} tarea asignada: {tarea} conv:{conversationId}");
             conocimiento.TareaAsignada        = tarea;
             conocimiento.ConversationIdTarea  = conversationId;
-            // La prioridad ya fue guardada por InterrumpirTareaActual o por el
-            // contexto del Cfp; la actualizamos desde el mensaje AcceptProposal
-            // a través de GestorComunicacion si hace falta. Por ahora la dejamos
-            // como fue fijada en OnTareaAsignadaConPrioridad.
             EvaluarPrioridades();
         }
 
-        /// Versión extendida llamada por GestorComunicacion para pasar también la prioridad.
         public void OnTareaAsignada(TareaContrato tarea, string conversationId, PrioridadContrato prioridad)
         {
             Debug.Log($"[Cerebro] {name} tarea asignada: {tarea} [{prioridad}] conv:{conversationId}");
@@ -311,9 +307,10 @@ namespace GuardiaIA
             estadoActual?.Salir(this, conocimiento, acciones);
             estadoActual = nuevoEstado;
 
-            if (nuevoEstado is EstadoCerrarZona  ||
-                nuevoEstado is EstadoYendoPalanca ||
-                nuevoEstado is EstadoPersecucion)
+            if (nuevoEstado is EstadoCerrarZona   ||
+                nuevoEstado is EstadoYendoPalanca  ||
+                nuevoEstado is EstadoPersecucion   ||
+                nuevoEstado is EstadoBarrerMapa)
                 conocimiento.TareaAsignada = TareaContrato.Ninguna;
 
             estadoActual.Entrar(this, conocimiento, acciones);

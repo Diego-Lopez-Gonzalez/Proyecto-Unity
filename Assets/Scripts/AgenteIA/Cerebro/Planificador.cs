@@ -3,28 +3,21 @@ using UnityEngine;
 
 namespace GuardiaIA
 {
-    // ── Eventos que disparan la planificación ─────────────────────────────────
-
     public enum EventoSeguridad
     {
-        JugadorDetectado,   // guardia o cámara ve al ladrón directamente
-        ObjetoRobado,       // objeto vigilado ha desaparecido
+        JugadorDetectado,
+        ObjetoRobado,
     }
 
-    // ── Estado del mundo para STRIPS ─────────────────────────────────────────
-
-    /// Representa los hechos conocidos del mundo en un momento dado.
-    /// El planificador parte de un EstadoMundo inicial y busca llegar
-    /// a uno que satisfaga el objetivo.
     public class EstadoMundo
     {
-        public bool LadronVisible      { get; set; }
-        public bool ObjetoRobado       { get; set; }
-        public bool ZonaCerrada        { get; set; }
-        public bool PalancaActivada    { get; set; }
-        public bool LadronCapturado    { get; set; }
+        public bool LadronVisible   { get; set; }
+        public bool ObjetoRobado    { get; set; }
+        public bool ZonaCerrada     { get; set; }
+        public bool PalancaActivada { get; set; }
+        public bool LadronCapturado { get; set; }
+        public bool MapaBarrido     { get; set; }
 
-        /// Copia superficial para no mutar el estado original durante la búsqueda.
         public EstadoMundo Clonar() => new EstadoMundo
         {
             LadronVisible   = LadronVisible,
@@ -32,19 +25,15 @@ namespace GuardiaIA
             ZonaCerrada     = ZonaCerrada,
             PalancaActivada = PalancaActivada,
             LadronCapturado = LadronCapturado,
+            MapaBarrido     = MapaBarrido,
         };
 
         public override string ToString() =>
             $"[visible:{LadronVisible} robado:{ObjetoRobado} " +
-            $"zona:{ZonaCerrada} palanca:{PalancaActivada} capturado:{LadronCapturado}]";
+            $"zona:{ZonaCerrada} palanca:{PalancaActivada} " +
+            $"capturado:{LadronCapturado} barrido:{MapaBarrido}]";
     }
 
-    // ── Operador STRIPS ───────────────────────────────────────────────────────
-
-    /// Un operador STRIPS tiene:
-    ///   · Tarea asociada      → la acción que se delega vía Contract Net.
-    ///   · Precondiciones      → función que comprueba si el estado permite aplicarlo.
-    ///   · Efectos             → función que muta una copia del estado tras aplicarlo.
     public class OperadorStrips
     {
         public TareaContrato                  Tarea          { get; }
@@ -62,39 +51,33 @@ namespace GuardiaIA
         }
     }
 
-    // ── Planificador STRIPS con encadenamiento hacia atrás ────────────────────
-
-    /// Genera un plan (lista de tareas) que lleva desde un EstadoMundo inicial
-    /// hasta satisfacer un objetivo, usando encadenamiento hacia atrás.
-    ///
-    /// El plan resultante es la secuencia de TareaContrato que Contract Net
-    /// distribuirá entre los guardias disponibles.
-    ///
-    /// Limitaciones intencionadas (para mantenerlo sencillo):
-    ///   · Profundidad máxima configurable (por defecto 4).
-    ///   · Sin ciclos: no repite operadores ya usados en la misma rama.
     public static class PlanificadorStrips
     {
-        // Catálogo de operadores disponibles.
-        // El orden importa: los primeros se intentan antes en la búsqueda.
         private static readonly OperadorStrips[] Operadores = new[]
         {
-            // CerrarZona: solo si el ladrón es visible y la zona no está cerrada.
+            // CerrarZona: ladrón visible y zona no cerrada.
             new OperadorStrips(
                 TareaContrato.CerrarZona,
                 e =>  e.LadronVisible && !e.ZonaCerrada,
                 e => { e.ZonaCerrada = true; }
             ),
 
-            // IrAPalanca: solo si el objeto fue robado y la palanca no está activa.
+            // IrAPalanca: objeto robado y palanca no activada.
             new OperadorStrips(
                 TareaContrato.IrAPalanca,
                 e =>  e.ObjetoRobado && !e.PalancaActivada,
                 e => { e.PalancaActivada = true; }
             ),
 
-            // Perseguir: requiere ladrón visible Y zona ya cerrada.
-            // Representa la persecución coordinada tras cortar la huida.
+            // BarrerMapa: ladrón no visible y mapa no barrido.
+            // Se delega cuando el ladrón se pierde tras un robo.
+            new OperadorStrips(
+                TareaContrato.BarrerMapa,
+                e =>  e.ObjetoRobado && !e.LadronVisible && !e.MapaBarrido,
+                e => { e.MapaBarrido = true; }
+            ),
+
+            // Perseguir: ladrón visible y zona ya cerrada.
             new OperadorStrips(
                 TareaContrato.Perseguir,
                 e =>  e.LadronVisible && e.ZonaCerrada,
@@ -102,8 +85,6 @@ namespace GuardiaIA
             ),
         };
 
-        /// Busca un plan desde <estado> que satisfaga <objetivo>.
-        /// Devuelve la lista de tareas en orden de ejecución, o lista vacía si no hay plan.
         public static List<TareaContrato> Planificar(
             EstadoMundo                    estado,
             System.Func<EstadoMundo, bool> objetivo,
@@ -120,7 +101,6 @@ namespace GuardiaIA
             return plan;
         }
 
-        // Encadenamiento hacia atrás recursivo con backtracking.
         private static bool Buscar(
             EstadoMundo                    estado,
             System.Func<EstadoMundo, bool> objetivo,
@@ -128,21 +108,14 @@ namespace GuardiaIA
             int                            profundidad,
             HashSet<TareaContrato>         usados)
         {
-            // ¿Ya cumplimos el objetivo?
             if (objetivo(estado)) return true;
-
-            // ¿Agotamos la profundidad?
             if (profundidad == 0) return false;
 
             foreach (var op in Operadores)
             {
-                // No repetir operadores en la misma rama.
-                if (usados.Contains(op.Tarea)) continue;
+                if (usados.Contains(op.Tarea))    continue;
+                if (!op.Precondiciones(estado))    continue;
 
-                // ¿Se pueden aplicar las precondiciones?
-                if (!op.Precondiciones(estado)) continue;
-
-                // Aplicamos el operador sobre una copia del estado.
                 EstadoMundo siguiente = estado.Clonar();
                 op.Efectos(siguiente);
 
@@ -152,7 +125,6 @@ namespace GuardiaIA
                 if (Buscar(siguiente, objetivo, plan, profundidad - 1, usados))
                     return true;
 
-                // Backtracking: deshacemos si esta rama no lleva al objetivo.
                 plan.RemoveAt(plan.Count - 1);
                 usados.Remove(op.Tarea);
             }
@@ -161,12 +133,6 @@ namespace GuardiaIA
         }
     }
 
-    // ── Planificador público (punto de entrada desde Cerebro/CerebroCamara) ───
-
-    /// Construye el EstadoMundo inicial a partir del evento y la prioridad,
-    /// lanza el PlanificadorStrips y devuelve el array de tareas resultante.
-    /// Es el único punto de contacto con el resto del sistema: Cerebro y
-    /// CerebroCamara llaman solo a este método, sin saber nada de STRIPS.
     public static class Planificador
     {
         public static TareaContrato[] PlanParaEvento(
@@ -181,16 +147,16 @@ namespace GuardiaIA
                 ZonaCerrada     = false,
                 PalancaActivada = false,
                 LadronCapturado = false,
+                MapaBarrido     = false,
             };
 
-            // Perseguir nunca se delega: el iniciador ya persigue por su cuenta.
-            // El plan delegado a contratistas tiene como objetivo máximo ZonaCerrada,
-            // tanto si el iniciador es un guardia como si es una cámara.
             System.Func<EstadoMundo, bool> objetivo = prioridad switch
             {
-                PrioridadContrato.Alta => e => e.ZonaCerrada && e.PalancaActivada,
-                PrioridadContrato.Media => e => e.PalancaActivada,
-                _                      => e => true
+                // Alta: jugador detectado → cerrar zona + palanca.
+                PrioridadContrato.Alta  => e => e.ZonaCerrada && e.PalancaActivada,
+                // Media: objeto robado → palanca + barrer mapa.
+                PrioridadContrato.Media => e => e.PalancaActivada && e.MapaBarrido,
+                _                       => e => true
             };
 
             var plan = PlanificadorStrips.Planificar(estado, objetivo);

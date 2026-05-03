@@ -18,9 +18,10 @@ namespace GuardiaIA
     public enum TareaContrato
     {
         Ninguna,
-        Perseguir,   // un guardia auxiliar persigue al ladrón junto al iniciador
+        Perseguir,
         CerrarZona,
         IrAPalanca,
+        BarrerMapa,
     }
 
     public class MensajeACL
